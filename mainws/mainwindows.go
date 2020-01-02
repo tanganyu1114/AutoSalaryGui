@@ -1,6 +1,7 @@
 package mainws
 
 import (
+	"AutoSalaryGui/filews"
 	"AutoSalaryGui/loginws"
 	"fmt"
 	"github.com/lxn/walk"
@@ -22,7 +23,11 @@ type MainGui struct {
 func MainShow() {
 	var mg MainGui
 	var li loginws.LoginInfo
-	ReadConf(&li)
+	var xlsxpath string
+	//读取用户配置文件信息
+	ReadConf(mg, &li)
+
+	//返回dialog窗口
 	def := MainWindow{
 		AssignTo: &mg.Window,
 		Title:    "AutoSalary Gui  --ver0.1",
@@ -44,7 +49,7 @@ func MainShow() {
 								log.Print(err)
 							} else if cmd == walk.DlgCmdOK {
 								//保存用户信息
-								SaveLogin(&li)
+								SaveLogin(mg, &li)
 							}
 						},
 					},
@@ -54,6 +59,12 @@ func MainShow() {
 						Visible:  true,
 						OnClicked: func() {
 							//打开选择文件窗口，获取文件路径以及文件名
+							if cmd, err := filews.FileChoose(mg.Window, &xlsxpath); err != nil {
+								log.Print(err)
+							} else if cmd == walk.DlgCmdOK {
+								//保存用户信息
+								SaveLogin(mg, &li)
+							}
 						},
 					},
 					PushButton{

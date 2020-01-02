@@ -7,11 +7,14 @@ import (
 )
 
 type LoginGui struct {
-	Dlg       *walk.Dialog
-	UserLable *walk.Label
-	PassLable *walk.Label
-	UserEdit  *walk.LineEdit
-	PassEdit  *walk.LineEdit
+	Dlg      *walk.Dialog
+	acceptPb *walk.PushButton
+	cancelPb *walk.PushButton
+	db       *walk.DataBinder
+	//UserLable *walk.Label
+	//PassLable *walk.Label
+	//UserEdit  *walk.LineEdit
+	//PassEdit  *walk.LineEdit
 }
 
 type LoginInfo struct {
@@ -23,16 +26,16 @@ type LoginInfo struct {
 
 func LoginWs(wf walk.Form, li *LoginInfo) (int, error) {
 	var lg LoginGui
-	var db *walk.DataBinder
-	var acceptPB, cancelPB *walk.PushButton
+	//var db *walk.DataBinder
+	//var acceptPB, cancelPB *walk.PushButton
 
 	reslg := Dialog{
 		AssignTo:      &lg.Dlg,
 		Title:         "Email邮箱登陆界面",
-		DefaultButton: &acceptPB,
-		CancelButton:  &cancelPB,
+		DefaultButton: &lg.acceptPb,
+		CancelButton:  &lg.cancelPb,
 		DataBinder: DataBinder{
-			AssignTo:       &db,
+			AssignTo:       &lg.db,
 			Name:           "LoginInfo",
 			DataSource:     li,
 			ErrorPresenter: ToolTipErrorPresenter{},
@@ -81,10 +84,10 @@ func LoginWs(wf walk.Form, li *LoginInfo) (int, error) {
 				Children: []Widget{
 					HSpacer{},
 					PushButton{
-						AssignTo: &acceptPB,
+						AssignTo: &lg.acceptPb,
 						Text:     "OK",
 						OnClicked: func() {
-							if err := db.Submit(); err != nil {
+							if err := lg.db.Submit(); err != nil {
 								log.Print(err)
 								return
 							}
@@ -93,7 +96,7 @@ func LoginWs(wf walk.Form, li *LoginInfo) (int, error) {
 						},
 					},
 					PushButton{
-						AssignTo:  &cancelPB,
+						AssignTo:  &lg.cancelPb,
 						Text:      "Cancel",
 						OnClicked: func() { lg.Dlg.Cancel() },
 					},

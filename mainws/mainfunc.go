@@ -4,14 +4,14 @@ import (
 	"AutoSalaryGui/loginws"
 	"encoding/base64"
 	"encoding/json"
-	"fmt"
+	"github.com/lxn/walk"
 	"io/ioutil"
 	"os"
 )
 
 const ConfigName = "autosalary.config"
 
-func SaveLogin(li *loginws.LoginInfo) {
+func SaveLogin(mg MainGui, li *loginws.LoginInfo) {
 
 	//	var filePtr *os.File
 	passbyte := []byte(li.PassInfo)
@@ -32,26 +32,32 @@ func SaveLogin(li *loginws.LoginInfo) {
 		}*/
 	err := ioutil.WriteFile(ConfigName, data, 0660)
 	if err != nil {
-		fmt.Print("保存用户信息失败！")
+		str := err.Error() + "存储用户信息格式错误"
+		WarnInfo(mg, str)
 	}
 }
 
-func ReadConf(li *loginws.LoginInfo) {
+func ReadConf(mg MainGui, li *loginws.LoginInfo) {
 	path, _ := os.Getwd()
 	filepath := path + "/" + ConfigName
 	if FileExist(filepath) {
 		filePtr, err := os.Open(ConfigName)
 		if err != nil {
-			fmt.Println("读取用户信息失败！")
+			//fmt.Println("读取用户信息失败！")
+			str := err.Error() + "读取用户信息失败"
+			WarnInfo(mg, str)
 		}
 		defer filePtr.Close()
 		readInfo := json.NewDecoder(filePtr)
 		err = readInfo.Decode(li)
 		if err != nil {
-			fmt.Println("存储用户信息格式错误！")
+			//fmt.Println("存储用户信息格式错误！")
+			str := err.Error() + "存储用户信息格式错误"
+			WarnInfo(mg, str)
 		}
 		decoded, _ := base64.StdEncoding.DecodeString(li.PassInfo)
 		li.PassInfo = string(decoded)
+
 	}
 }
 
@@ -66,4 +72,12 @@ func ChooseFile() {
 
 func Reset() {
 
+}
+
+func WarnInfo(mg MainGui, str string) {
+	walk.MsgBox(
+		mg.Window,
+		"Error",
+		str,
+		walk.MsgBoxOK|walk.MsgBoxIconError)
 }
