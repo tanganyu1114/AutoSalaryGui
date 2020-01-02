@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"time"
 )
 
 type Directory struct {
@@ -134,11 +135,7 @@ func (m *DirectoryTreeModel) RootAt(index int) walk.TreeItem {
 	return m.roots[index]
 }
 
-// start 自己创建
-
-// end
-
-/*type FileInfo struct {
+type FileInfo struct {
 	Name     string
 	Size     int64
 	Modified time.Time
@@ -201,7 +198,7 @@ func (m *FileInfoModel) SetDirPath(dirPath string) error {
 
 func (m *FileInfoModel) Image(row int) interface{} {
 	return filepath.Join(m.dirPath, m.items[row].Name)
-}*/
+}
 
 func shouldExclude(name string) bool {
 	switch name {

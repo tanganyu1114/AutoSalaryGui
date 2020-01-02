@@ -7,11 +7,13 @@ import (
 )
 
 type XlsxInfo struct {
-	filedlg  *walk.Dialog
+	fileDlg  *walk.Dialog
 	filePath *walk.DataBinder
 	fileTree *walk.TreeView
+	fileView *walk.TableView
 	acceptPb *walk.PushButton
 	cancelPb *walk.PushButton
+	spLitter *walk.Splitter
 }
 
 //var XlsxFilePath	string
@@ -19,12 +21,12 @@ type XlsxInfo struct {
 func FileChoose(wf walk.Form, xlsxpath *string) (int, error) {
 	var fc XlsxInfo
 	treeModel, err := NewDirectoryTreeModel()
-
+	xlsxModel := NewFileInfoModel()
 	if err != nil {
 		fmt.Println(err)
 	}
 	resfc := Dialog{
-		AssignTo:      &fc.filedlg,
+		AssignTo:      &fc.fileDlg,
 		Title:         "xlsx文件选择界面",
 		DefaultButton: &fc.acceptPb,
 		CancelButton:  &fc.cancelPb,
@@ -35,8 +37,8 @@ func FileChoose(wf walk.Form, xlsxpath *string) (int, error) {
 			ErrorPresenter: ToolTipErrorPresenter{},
 		},
 		Visible: true,
-		MinSize: Size{Width: 400, Height: 500},
-		Size:    Size{Width: 400, Height: 500},
+		MinSize: Size{Width: 500, Height: 500},
+		Size:    Size{Width: 500, Height: 500},
 		Layout:  VBox{},
 		Children: []Widget{
 			Composite{
@@ -54,14 +56,57 @@ func FileChoose(wf walk.Form, xlsxpath *string) (int, error) {
 
 						},
 					},
-					TreeView{
-						AssignTo:   &fc.fileTree,
+					HSplitter{
+						AssignTo:   &fc.spLitter,
 						ColumnSpan: 2,
-						Model:      treeModel,
-						MinSize:    Size{Width: 380, Height: 450},
-						OnCurrentItemChanged: func() {
-							dir := fc.fileTree.CurrentItem().(*Directory)
-							xlsxpath = &dir.name
+						Children: []Widget{
+							TreeView{
+								AssignTo:   &fc.fileTree,
+								ColumnSpan: 1,
+								Model:      treeModel,
+								MinSize:    Size{Width: 165, Height: 450},
+								OnCurrentItemChanged: func() {
+									//dir := fc.fileTree.CurrentItem().(*Directory)
+									//xlsxpath = &dir.name
+									dir := fc.fileTree.CurrentItem().(*Directory)
+									if err := xlsxModel.SetDirPath(dir.Path()); err != nil {
+										//mainws.WarnInfo(wf,err.Error())
+										fmt.Println(err)
+									}
+								},
+							},
+							TableView{
+								AssignTo: &fc.fileView,
+								//StretchFactor: 2,
+								Columns: []TableViewColumn{
+									TableViewColumn{
+										DataMember: "Name",
+										Width:      165,
+									},
+									TableViewColumn{
+										DataMember: "Size",
+										Format:     "%d",
+										Alignment:  AlignFar,
+										Width:      60,
+									},
+									TableViewColumn{
+										DataMember: "Modified",
+										Format:     "2006-01-02 15:04:05",
+										Width:      120,
+									},
+								},
+								Model: xlsxModel,
+								OnCurrentIndexChanged: func() {
+									/*									var url string
+																		if index := fc.fileView.CurrentIndex(); index > -1 {
+																			name := xlsxModel.items[index].Name
+																			dir := fc.fileTree.CurrentItem().(*Directory)
+																			url = filepath.Join(dir.Path(), name)
+																		}
+									*/
+									//webView.SetURL(url)
+								},
+							},
 						},
 					},
 				},
@@ -91,7 +136,7 @@ func FileChoose(wf walk.Form, xlsxpath *string) (int, error) {
 						//Alignment: AlignHNearVCenter,
 						OnClicked: func() {
 							//关闭窗口
-							fc.filedlg.Cancel()
+							fc.fileDlg.Cancel()
 						},
 					},
 				},
