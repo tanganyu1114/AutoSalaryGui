@@ -1,7 +1,6 @@
 package mainws
 
 import (
-	"AutoSalaryGui/filews"
 	"AutoSalaryGui/loginws"
 	"fmt"
 	"github.com/lxn/walk"
@@ -23,7 +22,10 @@ type MainGui struct {
 func MainShow() {
 	var mg MainGui
 	var li loginws.LoginInfo
-	var xlsxpath string
+	//	var xlsxpath string
+	var fd walk.FileDialog
+	fd.Title = "请选择工资条文件"
+	fd.Filter = "excle|*.xlsx"
 	//读取用户配置文件信息
 	ReadConf(mg, &li)
 
@@ -59,11 +61,13 @@ func MainShow() {
 						Visible:  true,
 						OnClicked: func() {
 							//打开选择文件窗口，获取文件路径以及文件名
-							if cmd, err := filews.FileChoose(mg.Window, &xlsxpath); err != nil {
-								log.Print(err)
-							} else if cmd == walk.DlgCmdOK {
-								//保存用户信息
-								SaveLogin(mg, &li)
+							if cmd, err := fd.ShowOpen(mg.Window); err != nil {
+								fmt.Println(err)
+							} else if cmd {
+								//成功获取路径并修改按钮名字
+								mg.FilePb.SetText(fd.FilePath)
+								mg.FilePb.SetEnabled(false)
+								//fmt.Println("filepath",fd.FilePath,"title",fd.Title)
 							}
 						},
 					},
@@ -73,6 +77,10 @@ func MainShow() {
 						Visible:  true,
 						OnClicked: func() {
 							//重置选中的文件，清空预览窗口
+							mg.FilePb.SetEnabled(true)
+							mg.FilePb.SetText("请选择工资文件(xlsx)")
+							fd.FilePath = ""
+							//fmt.Println("filepath",fd.FilePath,"title",fd.Title)
 						},
 					},
 					PushButton{

@@ -7,10 +7,10 @@ import (
 )
 
 type LoginGui struct {
-	Dlg      *walk.Dialog
+	loginDlg *walk.Dialog
 	acceptPb *walk.PushButton
 	cancelPb *walk.PushButton
-	db       *walk.DataBinder
+	loginDb  *walk.DataBinder
 	//UserLable *walk.Label
 	//PassLable *walk.Label
 	//UserEdit  *walk.LineEdit
@@ -30,12 +30,12 @@ func LoginWs(wf walk.Form, li *LoginInfo) (int, error) {
 	//var acceptPB, cancelPB *walk.PushButton
 
 	reslg := Dialog{
-		AssignTo:      &lg.Dlg,
+		AssignTo:      &lg.loginDlg,
 		Title:         "Email邮箱登陆界面",
 		DefaultButton: &lg.acceptPb,
 		CancelButton:  &lg.cancelPb,
 		DataBinder: DataBinder{
-			AssignTo:       &lg.db,
+			AssignTo:       &lg.loginDb,
 			Name:           "LoginInfo",
 			DataSource:     li,
 			ErrorPresenter: ToolTipErrorPresenter{},
@@ -87,18 +87,18 @@ func LoginWs(wf walk.Form, li *LoginInfo) (int, error) {
 						AssignTo: &lg.acceptPb,
 						Text:     "OK",
 						OnClicked: func() {
-							if err := lg.db.Submit(); err != nil {
+							if err := lg.loginDb.Submit(); err != nil {
 								log.Print(err)
 								return
 							}
 
-							lg.Dlg.Accept()
+							lg.loginDlg.Accept()
 						},
 					},
 					PushButton{
 						AssignTo:  &lg.cancelPb,
 						Text:      "Cancel",
-						OnClicked: func() { lg.Dlg.Cancel() },
+						OnClicked: func() { lg.loginDlg.Cancel() },
 					},
 				},
 			},
