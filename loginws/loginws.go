@@ -1,9 +1,13 @@
 package loginws
 
 import (
+	"encoding/base64"
+	"encoding/json"
 	"github.com/lxn/walk"
 	. "github.com/lxn/walk/declarative"
+	"io/ioutil"
 	"log"
+	"os"
 )
 
 type LoginGui struct {
@@ -17,17 +21,28 @@ type LoginGui struct {
 	//PassEdit  *walk.LineEdit
 }
 
-type LoginInfo struct {
-	UserInfo string
-	PassInfo string
-	HostInfo string
-	PortInfo int
+type Login interface {
+	SaveLogin()
+	ReadConf()
 }
 
-func LoginWs(wf walk.Form, li *LoginInfo) (int, error) {
-	var lg LoginGui
-	//var db *walk.DataBinder
-	//var acceptPB, cancelPB *walk.PushButton
+type LoginInfo struct {
+	UserInfo  string
+	PassInfo  string
+	HostInfo  string
+	PortInfo  int
+	ValidInfo bool
+}
+
+const ConfigName = "autosalary.config"
+
+var (
+	Li   *LoginInfo = &LoginInfo{PortInfo: 465}
+	lg   LoginGui
+	warn *walk.MainWindow
+)
+
+func LoginWs(wf walk.Form) (int, error) {
 
 	reslg := Dialog{
 		AssignTo:      &lg.loginDlg,
@@ -37,7 +52,7 @@ func LoginWs(wf walk.Form, li *LoginInfo) (int, error) {
 		DataBinder: DataBinder{
 			AssignTo:       &lg.loginDb,
 			Name:           "LoginInfo",
-			DataSource:     li,
+			DataSource:     Li,
 			ErrorPresenter: ToolTipErrorPresenter{},
 		},
 		Visible: true,
@@ -107,3 +122,73 @@ func LoginWs(wf walk.Form, li *LoginInfo) (int, error) {
 	sint, err := reslg.Run(wf)
 	return sint, err
 }
+
+func (li *LoginInfo) SaveLogin() {
+
+	//	var filePtr *os.File
+	passbyte := []byte(li.PassInfo)
+	//加密
+	encoded := base64.StdEncoding.EncodeToString(passbyte)
+	//解密
+	//decoded, _ := base64.StdEncoding.DecodeString(encoded)
+	li.PassInfo = encoded
+	data, _ := json.Marshal(li)
+
+	/*	path, _ := os.Getwd()
+		fmt.Println(path)
+		filepath := path + "/" + ConfigName
+		if !FileExist(filepath) {
+			filePtr, _ = os.Create(ConfigName)
+		} else {
+			filePtr, _ = os.OpenFile(ConfigName, os.O_TRUNC, 0660)
+		}*/
+	err := ioutil.WriteFile(ConfigName, data, 0660)
+	if err != nil {
+		str := err.Error() + "存储用户信息格式错误"
+		WarnInfo(str)
+	}
+}
+
+func (li *LoginInfo) ReadConf() {
+	path, _ := os.Getwd()
+	filepath := path + "/" + ConfigName
+	if FileExist(filepath) {
+		filePtr, err := os.Open(ConfigName)
+		if err != nil {
+			//fmt.Println("读取用户信息失败！")
+			str := err.Error() + "读取用户信息失败"
+			WarnInfo(str)
+		}
+		defer filePtr.Close()
+		readInfo := json.NewDecoder(filePtr)
+		err = readInfo.Decode(li)
+		if err != nil {
+			//fmt.Println("存储用户信息格式错误！")
+			str := err.Error() + "存储用户信息格式错误"
+			WarnInfo(str)
+		}
+		decoded, _ := base64.StdEncoding.DecodeString(li.PassInfo)
+		li.PassInfo = string(decoded)
+
+	}
+}
+
+func FileExist(path string) bool {
+	_, err := os.Lstat(path)
+	return !os.IsNotExist(err)
+}
+
+func WarnInfo(str string) {
+	walk.MsgBox(
+		warn,
+		"Error",
+		str,
+		walk.MsgBoxOK|walk.MsgBoxIconError)
+}
+
+//登陆校验
+/*func (lg *LoginInfo)LoginValid()(valid bool,err error){
+
+
+
+}*/

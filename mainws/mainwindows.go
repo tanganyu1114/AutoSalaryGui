@@ -5,13 +5,13 @@ import (
 	"fmt"
 	"github.com/lxn/walk"
 	. "github.com/lxn/walk/declarative"
-	"log"
 )
 
 type MainGui struct {
 	Window    *walk.MainWindow
 	LoginPb   *walk.PushButton
 	FilePb    *walk.PushButton
+	Fd        walk.FileDialog
 	ResetPb   *walk.PushButton
 	SendPb    *walk.PushButton
 	LogPb     *walk.PushButton
@@ -19,19 +19,19 @@ type MainGui struct {
 	ShowView  *walk.WebView
 }
 
+var Mg MainGui
+
 func MainShow() {
-	var mg MainGui
-	var li loginws.LoginInfo
-	//	var xlsxpath string
-	var fd walk.FileDialog
-	fd.Title = "请选择工资条文件"
-	fd.Filter = "excle|*.xlsx"
+
 	//读取用户配置文件信息
-	ReadConf(mg, &li)
+	loginws.Li.ReadConf()
+
+	Mg.Fd.Title = "请选择工资条文件"
+	Mg.Fd.Filter = ".xlsx|*.xlsx"
 
 	//返回dialog窗口
 	def := MainWindow{
-		AssignTo: &mg.Window,
+		AssignTo: &Mg.Window,
 		Title:    "AutoSalary Gui  --ver0.1",
 		MinSize:  Size{Width: 640, Height: 400},
 		Size:     Size{Width: 640, Height: 400},
@@ -41,76 +41,77 @@ func MainShow() {
 				Layout: Grid{Columns: 2},
 				Children: []Widget{
 					PushButton{
-						AssignTo:   &mg.LoginPb,
+						AssignTo:   &Mg.LoginPb,
 						Text:       "登陆",
 						Visible:    true,
 						ColumnSpan: 2,
 						OnClicked: func() {
 							//打开登陆配置界面
-							if cmd, err := loginws.LoginWs(mg.Window, &li); err != nil {
-								log.Print(err)
+							if cmd, err := loginws.LoginWs(Mg.Window); err != nil {
+								WarnInfo(err.Error())
 							} else if cmd == walk.DlgCmdOK {
 								//保存用户信息
-								SaveLogin(mg, &li)
+								loginws.Li.SaveLogin()
 							}
 						},
 					},
 					PushButton{
-						AssignTo: &mg.FilePb,
+						AssignTo: &Mg.FilePb,
 						Text:     "请选择工资文件(xlsx)",
 						Visible:  true,
 						OnClicked: func() {
 							//打开选择文件窗口，获取文件路径以及文件名
-							if cmd, err := fd.ShowOpen(mg.Window); err != nil {
+							if cmd, err := Mg.Fd.ShowOpen(Mg.Window); err != nil {
 								fmt.Println(err)
 							} else if cmd {
 								//成功获取路径并修改按钮名字
-								mg.FilePb.SetText(fd.FilePath)
-								mg.FilePb.SetEnabled(false)
-								//fmt.Println("filepath",fd.FilePath,"title",fd.Title)
+								Mg.FilePb.SetText(Mg.Fd.FilePath)
+								Mg.FilePb.SetEnabled(false)
+								//fmt.Println("filepath",Fd.FilePath,"title",Fd.Title)
+								//确认选择后预览邮件发送效果
 							}
 						},
 					},
 					PushButton{
-						AssignTo: &mg.ResetPb,
+						AssignTo: &Mg.ResetPb,
 						Text:     "重置",
 						Visible:  true,
 						OnClicked: func() {
 							//重置选中的文件，清空预览窗口
-							mg.FilePb.SetEnabled(true)
-							mg.FilePb.SetText("请选择工资文件(xlsx)")
-							fd.FilePath = ""
-							//fmt.Println("filepath",fd.FilePath,"title",fd.Title)
+							Mg.FilePb.SetEnabled(true)
+							Mg.FilePb.SetText("请选择工资文件(xlsx)")
+							Mg.Fd.FilePath = ""
+							//fmt.Println("filepath",Fd.FilePath,"title",Fd.Title)
 						},
 					},
 					PushButton{
-						AssignTo: &mg.SendPb,
+						AssignTo: &Mg.SendPb,
 						Text:     "发送邮件",
 						Visible:  true,
 						OnKeyUp: func(key walk.Key) {
 							if key == walk.KeyS {
-								mg.FilePb.SetText("")
+								Mg.FilePb.SetText("")
 							}
 						},
 					},
 					PushButton{
-						AssignTo: &mg.LogPb,
+						AssignTo: &Mg.LogPb,
 						Text:     "查看历史记录",
 						Visible:  true,
 						OnKeyUp: func(key walk.Key) {
 							if key == walk.KeyS {
-								mg.FilePb.SetText("")
+								Mg.FilePb.SetText("")
 							}
 						},
 					},
 					Label{
-						AssignTo:   &mg.ShowLabel,
+						AssignTo:   &Mg.ShowLabel,
 						ColumnSpan: 2,
 						Visible:    true,
 						Text:       "预览邮件信息：",
 					},
 					WebView{
-						AssignTo:   &mg.ShowView,
+						AssignTo:   &Mg.ShowView,
 						Visible:    true,
 						ColumnSpan: 2,
 					},
@@ -123,5 +124,5 @@ func MainShow() {
 	if err != nil {
 		fmt.Println(err)
 	}
-	_ = mg.Window.Run()
+	_ = Mg.Window.Run()
 }
