@@ -1,11 +1,11 @@
 package sendmail
 
 import (
-	"AutoSalaryGui/loginws"
 	"AutoSalaryGui/mainws"
 	"bytes"
 	"fmt"
 	"github.com/360EntSecGroup-Skylar/excelize/v2"
+	"github.com/lxn/walk"
 	"gopkg.in/gomail.v2"
 	"html/template"
 	"os"
@@ -19,6 +19,7 @@ const (
 )
 
 var (
+	warn  *walk.MainWindow
 	Entry [][]string
 	Enum  int
 	Nmail int = 0
@@ -27,6 +28,9 @@ var (
 )
 
 type Sendinfo struct {
+	Title  string
+	Touser string
+
 	Sbody template.HTML
 	Spre  string
 	Ssuf  string
@@ -123,7 +127,8 @@ func Emailbody(entry [][]string, row []string) (info string) {
 	return info
 }
 
-func send(touser string, body string) {
+//发送当前邮件
+func Send(touser string, body string) {
 	m := gomail.NewMessage()
 	m.SetHeader("From", mainws.Li.UserInfo)
 	m.SetHeader("To", touser)
@@ -145,37 +150,52 @@ func send(touser string, body string) {
 
 }
 
+//发送所有
+func SendAll(xlsx string) (err error) {
+	m := gomail.NewMessage()
+	m.SetHeader("From", Li.UserInfo)
+	m.SetHeader("To", touser)
+	//m.SetAddressHeader("Cc", "dan@example.com", "Dan")
+	m.SetHeader("Subject", Emailconfig.Mailinfo.Title)
+	m.SetBody("text/html", body)
+	//m.Attach("/home/Alex/lolcat.jpg")
+
+	iport, err := strconv.Atoi(Emailconfig.Userinfo.Port)
+	checkErr(err)
+	d := gomail.NewDialer(Emailconfig.Userinfo.Host, iport, Emailconfig.Userinfo.User, Emailconfig.Userinfo.Pass)
+
+	// Send the email to Bob, Cora and Dan.
+	if err := d.DialAndSend(m); err != nil {
+		fmt.Println(err)
+	} else {
+		fmt.Println("邮件发送成功 ！")
+	}
+
+}
+
 func readXls() (xlsfile [][]string) {
-	/*	xlsFile, err := excelize.OpenFile(Emailconfig.Xlsinfo.Xls)
-		checkErr(err)
-		isheetid, _ := strconv.Atoi(Emailconfig.Xlsinfo.Sheetid)
-		Sheetname = xlsFile.GetSheetName(isheetid)
-		rows, err := xlsFile.GetRows(Sheetname)
-		Mcell,_ = xlsFile.GetMergeCells(Sheetname)
-		Head, _ = strconv.Atoi(Emailconfig.Xlsinfo.Head)
-		Entry = rows[0:Head]
-		Enum = len(rows) - Head
-		return rows*/
+
 	//改为Gui模式
-	xlsFile, err := excelize.OpenFile(mainws.Fd.FilePath)
+	xlsFile, err := excelize.OpenFile()
 	if err != nil {
-		mainws.WarnInfo(err.Error())
+		WarnInfo(err.Error())
 	}
 	sheetname := xlsFile.GetSheetName(sheetid)
 	rows, err := xlsFile.GetRows(sheetname)
 	if err != nil {
-		mainws.WarnInfo(err.Error())
+		WarnInfo(err.Error())
 	}
 	Mcell, _ = xlsFile.GetMergeCells(sheetname)
-	Head, _ = strconv.Atoi(Emailconfig.Xlsinfo.Head)
 	Entry = rows[0:Head]
 	Enum = len(rows) - Head
 	return rows
 
 }
 
-func checkErr(err error) {
-	if err != nil {
-		fmt.Println(err)
-	}
+func WarnInfo(str string) {
+	walk.MsgBox(
+		warn,
+		"Error",
+		str,
+		walk.MsgBoxOK|walk.MsgBoxIconError)
 }

@@ -2,6 +2,7 @@ package mainws
 
 import (
 	"AutoSalaryGui/loginws"
+	"AutoSalaryGui/setmail"
 	"fmt"
 	"github.com/lxn/walk"
 	. "github.com/lxn/walk/declarative"
@@ -11,12 +12,12 @@ type MainGui struct {
 	Window    *walk.MainWindow
 	LoginPb   *walk.PushButton
 	FilePb    *walk.PushButton
-	Fd        walk.FileDialog
 	ResetPb   *walk.PushButton
 	SendPb    *walk.PushButton
 	LogPb     *walk.PushButton
 	ShowLabel *walk.Label
 	ShowView  *walk.WebView
+	Fd        walk.FileDialog
 }
 
 var Mg MainGui
@@ -85,13 +86,26 @@ func MainShow() {
 						},
 					},
 					PushButton{
+						AssignTo: &Mg.ResetPb,
+						Text:     "邮件配置",
+						Visible:  true,
+						OnClicked: func() {
+							if cmd, err := setmail.SetMail(Mg.Window); err != nil {
+								WarnInfo(err.Error())
+							} else if cmd == walk.DlgCmdOK {
+								//保存邮件配置信息
+							}
+						},
+					},
+					PushButton{
 						AssignTo: &Mg.SendPb,
 						Text:     "发送邮件",
 						Visible:  true,
-						OnKeyUp: func(key walk.Key) {
-							if key == walk.KeyS {
-								Mg.FilePb.SetText("")
-							}
+						OnClicked: func() {
+							//点击发送邮件
+							/*							if err := sendmail.SendAll(Mg.Fd.FilePath); err !=nil {
+														WarnInfo(err.Error())
+													}*/
 						},
 					},
 					PushButton{

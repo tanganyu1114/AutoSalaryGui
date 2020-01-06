@@ -15,10 +15,6 @@ type LoginGui struct {
 	acceptPb *walk.PushButton
 	cancelPb *walk.PushButton
 	loginDb  *walk.DataBinder
-	//UserLable *walk.Label
-	//PassLable *walk.Label
-	//UserEdit  *walk.LineEdit
-	//PassEdit  *walk.LineEdit
 }
 
 type Login interface {
