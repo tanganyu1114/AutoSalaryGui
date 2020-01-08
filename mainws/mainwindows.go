@@ -4,6 +4,7 @@ import (
 	"AutoSalaryGui/loginws"
 	"AutoSalaryGui/sendmail"
 	"AutoSalaryGui/setmail"
+	"bytes"
 	"fmt"
 	"github.com/lxn/walk"
 	. "github.com/lxn/walk/declarative"
@@ -36,7 +37,14 @@ type MainGui struct {
 const TempFile = "temp_mail_file.html"
 
 var Mg MainGui
+
+// xlsx内容
 var rows [][]string
+
+// 表头高度
+var head int = 2
+var touser string
+var mailinfo *bytes.Buffer
 var index int = 0
 
 func init() {
@@ -50,6 +58,11 @@ func MainShow() {
 
 	Mg.Fd.Title = "请选择工资条文件"
 	Mg.Fd.Filter = ".xlsx|*.xlsx"
+
+	num := len(rows) - head
+	if num < 1 {
+		num = 1
+	}
 
 	//返回dialog窗口
 	def := MainWindow{
@@ -83,7 +96,7 @@ func MainShow() {
 						Visible:  true,
 						OnClicked: func() {
 							//点击发送邮件
-							//sendmail.SendMail(rows)
+							//sendmail.SendAll(rows,mailinfo)
 						},
 					},
 					PushButton{
@@ -128,6 +141,7 @@ func MainShow() {
 								WarnInfo(err.Error())
 							} else if cmd == walk.DlgCmdOK {
 								//保存邮件配置信息
+								fmt.Println(setmail.Mi.Prefix)
 								setmail.Mi.SaveMailConf()
 							}
 						},
@@ -156,7 +170,7 @@ func MainShow() {
 						OnClicked: func() {
 							//bind webview info
 							if rows != nil {
-								mailinfo := sendmail.GetMailInfo(index, rows)
+								touser, mailinfo = sendmail.GetMailInfo(index, rows)
 								err := ioutil.WriteFile(TempFile, mailinfo.Bytes(), 0660)
 								if err != nil {
 									WarnInfo(err.Error())
@@ -185,13 +199,17 @@ func MainShow() {
 						Visible:  true,
 						OnClicked: func() {
 							//index -1 , if index=0 disable
+							if index == 2 {
+								Mg.ForwardPb.SetVisible(false)
+								index -= index
+							}
 						},
 					},
 					Label{
 						AssignTo:  &Mg.NumInfo,
 						Alignment: AlignHCenterVCenter,
 						Visible:   true,
-						Text:      "第" + strconv.Itoa(index) + "条/总共" + strconv.Itoa(sendmail.Enum) + "条",
+						Text:      "第" + strconv.Itoa(index+1) + "条/总共" + strconv.Itoa(num) + "条",
 					},
 					PushButton{
 						AssignTo: &Mg.NextPd,
@@ -199,11 +217,16 @@ func MainShow() {
 						Visible:  true,
 						OnClicked: func() {
 							//index +1 , if index=Enum disable
-
+							if index == len(rows)-head-1 {
+								Mg.NextPd.SetVisible(false)
+								index += 1
+							}
 						},
 					},
 					NumberEdit{
 						AssignTo: &Mg.NumEdit,
+						MinValue: 1,
+						MaxValue: float64(num),
 						Decimals: 0,
 						Value:    index,
 					},
@@ -221,8 +244,13 @@ func MainShow() {
 						Text:     "发送当前邮件",
 						Visible:  true,
 						OnClicked: func() {
-							//index +1 , if index=Enum disable
-
+							// send the mail info
+							err := sendmail.SendSigle(touser, mailinfo)
+							if err != nil {
+								WarnInfo(err.Error())
+							} else {
+								PromptInfo("邮件发送成功！")
+							}
 						},
 					},
 				},

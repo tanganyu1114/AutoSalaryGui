@@ -122,6 +122,7 @@ func LoginWs(wf walk.Form) (int, error) {
 func (li *LoginInfo) SaveLogin() {
 
 	//	var filePtr *os.File
+	srcpass := li.PassInfo
 	passbyte := []byte(li.PassInfo)
 	//加密
 	encoded := base64.StdEncoding.EncodeToString(passbyte)
@@ -135,6 +136,7 @@ func (li *LoginInfo) SaveLogin() {
 		str := err.Error() + "存储用户信息格式错误"
 		WarnInfo(str)
 	}
+	li.PassInfo = srcpass
 }
 
 func (li *LoginInfo) ReadConf() {

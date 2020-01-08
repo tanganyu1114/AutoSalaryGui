@@ -40,15 +40,14 @@ var (
 	Si    *Sendinfo = &Sendinfo{Fmuser: loginws.Li.UserInfo}
 )
 
-func GetMailInfo(index int, rows [][]string) (buffer *bytes.Buffer) {
+func GetMailInfo(index int, rows [][]string) (touser string, buffer *bytes.Buffer) {
 	var info string
 	row := rows[Head+index]
 	buffer = new(bytes.Buffer)
 	matched, _ := regexp.MatchString("\\w[-\\w.+]*@([A-Za-z0-9][-A-Za-z0-9]+\\.)+[A-Za-z]{2,14}", row[len(row)-1])
 	if matched {
-		Si.Touser = row[len(row)-1]
+		touser = row[len(row)-1]
 	} else {
-
 		info = "<meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\" /></br>获取邮箱失败,错误的邮箱格式,姓名：" + row[0] + " 邮箱信息:" + row[len(row)-1]
 		buffer = bytes.NewBufferString(info)
 		return
@@ -133,9 +132,24 @@ func SendAll(touser string, body string) (err error) {
 }
 
 //发送当前
-/*func Send(xlsx string) (err error) {
+func SendSigle(touser string, body *bytes.Buffer) (err error) {
+	m := gomail.NewMessage()
+	m.SetHeader("From", loginws.Li.UserInfo)
+	m.SetHeader("To", touser)
+	if setmail.Mi.Alias != "" {
+		m.SetAddressHeader("Cc", loginws.Li.UserInfo, setmail.Mi.Alias)
+	}
+	m.SetHeader("Subject", setmail.Mi.Title)
+	m.SetBody("text/html", body.String())
 
-}*/
+	d := gomail.NewDialer(loginws.Li.HostInfo, loginws.Li.PortInfo, loginws.Li.UserInfo, loginws.Li.PassInfo)
+
+	// Send the email to Bob, Cora and Dan.
+	if err := d.DialAndSend(m); err != nil {
+		return err
+	}
+	return nil
+}
 
 func ReadXlsx(xlsxpath string) (err error, rows [][]string) {
 
