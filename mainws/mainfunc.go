@@ -11,3 +11,11 @@ func WarnInfo(str string) {
 		str,
 		walk.MsgBoxOK|walk.MsgBoxIconError)
 }
+
+func PromptInfo(str string) {
+	walk.MsgBox(
+		Mg.Window,
+		"Info",
+		str,
+		walk.MsgBoxOK|walk.MsgBoxIconInformation)
+}

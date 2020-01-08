@@ -30,7 +30,7 @@ type LoginInfo struct {
 	ValidInfo bool
 }
 
-const ConfigName = "autosalary.config"
+const LoginConf = "login.config"
 
 var (
 	Li   *LoginInfo = &LoginInfo{PortInfo: 465}
@@ -130,15 +130,7 @@ func (li *LoginInfo) SaveLogin() {
 	li.PassInfo = encoded
 	data, _ := json.Marshal(li)
 
-	/*	path, _ := os.Getwd()
-		fmt.Println(path)
-		filepath := path + "/" + ConfigName
-		if !FileExist(filepath) {
-			filePtr, _ = os.Create(ConfigName)
-		} else {
-			filePtr, _ = os.OpenFile(ConfigName, os.O_TRUNC, 0660)
-		}*/
-	err := ioutil.WriteFile(ConfigName, data, 0660)
+	err := ioutil.WriteFile(LoginConf, data, 0660)
 	if err != nil {
 		str := err.Error() + "存储用户信息格式错误"
 		WarnInfo(str)
@@ -147,9 +139,9 @@ func (li *LoginInfo) SaveLogin() {
 
 func (li *LoginInfo) ReadConf() {
 	path, _ := os.Getwd()
-	filepath := path + "/" + ConfigName
+	filepath := path + "/" + LoginConf
 	if FileExist(filepath) {
-		filePtr, err := os.Open(ConfigName)
+		filePtr, err := os.Open(LoginConf)
 		if err != nil {
 			//fmt.Println("读取用户信息失败！")
 			str := err.Error() + "读取用户信息失败"
