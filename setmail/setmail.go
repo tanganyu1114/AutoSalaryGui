@@ -34,9 +34,8 @@ type SetMailConf interface {
 const MailConf = "mail.config"
 
 var (
-	warn *walk.MainWindow
-	sg   SetGui
-	Mi   = new(MailInfo)
+	sg SetGui
+	Mi = new(MailInfo)
 )
 
 func SetMail(wf walk.Form) (int, error) {
@@ -44,6 +43,7 @@ func SetMail(wf walk.Form) (int, error) {
 	resmail := Dialog{
 		AssignTo:      &sg.setDlg,
 		Title:         "邮件配置界面",
+		Icon:          "source/logo.png",
 		DefaultButton: &sg.acceptPb,
 		CancelButton:  &sg.cancelPb,
 		DataBinder: DataBinder{
@@ -134,46 +134,37 @@ func SetMail(wf walk.Form) (int, error) {
 	return sint, err
 }
 
-func (mi *MailInfo) SaveMailConf() {
+func (mi *MailInfo) SaveMailConf() (err error) {
 	//	fmt.Println(mi)
 	data, _ := json.Marshal(mi)
-	err := ioutil.WriteFile(MailConf, data, 0660)
+	err = ioutil.WriteFile(MailConf, data, 0660)
 	if err != nil {
-		str := err.Error() + "存储邮件配置信息错误"
-		WarnInfo(str)
+		return
 	}
+	return nil
 }
 
-func (mi *MailInfo) ReadMailConf() {
+func (mi *MailInfo) ReadMailConf() (err error) {
 	path, _ := os.Getwd()
 	filepath := path + "/" + MailConf
 	if FileExist(filepath) {
 		filePtr, err := os.Open(MailConf)
 		if err != nil {
 			//fmt.Println("读取用户信息失败！")
-			str := err.Error() + "读取邮件配置信息失败"
-			WarnInfo(str)
+			return err
 		}
 		defer filePtr.Close()
 		readInfo := json.NewDecoder(filePtr)
 		err = readInfo.Decode(mi)
 		if err != nil {
 			//fmt.Println("存储用户信息格式错误！")
-			str := err.Error() + "存储用户信息格式错误"
-			WarnInfo(str)
+			return err
 		}
 	}
+	return nil
 }
 
 func FileExist(path string) bool {
 	_, err := os.Lstat(path)
 	return !os.IsNotExist(err)
-}
-
-func WarnInfo(str string) {
-	walk.MsgBox(
-		warn,
-		"Error",
-		str,
-		walk.MsgBoxOK|walk.MsgBoxIconError)
 }

@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"github.com/lxn/walk"
 	. "github.com/lxn/walk/declarative"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -46,31 +45,38 @@ var head int = 2
 var touser string
 var mailinfo *bytes.Buffer
 var index int = 0
+var num int = 0
 
 func init() {
 	//读取用户配置文件信息
-	loginws.Li.ReadConf()
+	if err := loginws.Li.ReadConf(); err != nil {
+		WarnInfo(err.Error())
+	}
 	//读取邮件配置信息
-	setmail.Mi.ReadMailConf()
+	if err := setmail.Mi.ReadMailConf(); err != nil {
+		WarnInfo(err.Error())
+	}
 }
 
 func MainShow() {
 
 	Mg.Fd.Title = "请选择工资条文件"
-	Mg.Fd.Filter = ".xlsx|*.xlsx"
-
-	num := len(rows) - head
-	if num < 1 {
+	Mg.Fd.Filter = "*.xlsx|*.xlsx"
+	viewbg, _ := filepath.Abs("source/view.jpg")
+	num = len(rows) - head
+	if num < 0 {
 		num = 1
 	}
 
 	//返回dialog窗口
 	def := MainWindow{
 		AssignTo: &Mg.Window,
-		Title:    "AutoSalary Gui  --ver0.1",
-		MinSize:  Size{Width: 640, Height: 720},
-		Size:     Size{Width: 640, Height: 720},
-		Layout:   VBox{},
+		Icon:     "source/logo.png",
+		//Background: BitmapBrush{Image:"source/view.jpg",},
+		Title:   "AutoSalary Gui  --ver0.1",
+		MinSize: Size{Width: 640, Height: 720},
+		Size:    Size{Width: 640, Height: 720},
+		Layout:  VBox{},
 		Children: []Widget{
 			Composite{
 				Layout: Grid{Columns: 2},
@@ -97,6 +103,23 @@ func MainShow() {
 						OnClicked: func() {
 							//点击发送邮件
 							//sendmail.SendAll(rows,mailinfo)
+							PromptSendInfo(Mg.Window)
+							Mg.SendAllPb.SetEnabled(false)
+							var res string
+							for index = 0; index < len(rows)-head; index++ {
+								touser, mailinfo = sendmail.GetMailInfo(index, rows)
+								err := sendmail.SendSigle(touser, mailinfo)
+								if err != nil {
+									res = err.Error()
+								}
+								ps.pmpShow.SetText("正在发送第" + strconv.Itoa(index+1) + "条/总共" + strconv.Itoa(num) + "条")
+							}
+							ps.pmpPb.Clicked()
+							if res != "" {
+								WarnInfo(res)
+							} else {
+								PromptInfo("邮件发送完成!")
+							}
 						},
 					},
 					PushButton{
@@ -115,6 +138,12 @@ func MainShow() {
 								if err != nil {
 									WarnInfo(err.Error())
 								}
+								num = len(rows) - head
+								if num > 1 {
+									Mg.NextPd.SetEnabled(true)
+								}
+								SetLinelabel()
+								View()
 								//fmt.Println(rows)
 							}
 						},
@@ -128,6 +157,7 @@ func MainShow() {
 							Mg.FilePb.SetEnabled(true)
 							Mg.FilePb.SetText("请选择工资文件(xlsx)")
 							Mg.Fd.FilePath = ""
+							Mg.ShowView.SetURL(viewbg)
 							//fmt.Println("filepath",Fd.FilePath,"title",Fd.Title)
 						},
 					},
@@ -141,8 +171,10 @@ func MainShow() {
 								WarnInfo(err.Error())
 							} else if cmd == walk.DlgCmdOK {
 								//保存邮件配置信息
-								fmt.Println(setmail.Mi.Prefix)
-								setmail.Mi.SaveMailConf()
+								if err := setmail.Mi.SaveMailConf(); err != nil {
+									WarnInfo(err.Error())
+								}
+								View()
 							}
 						},
 					},
@@ -162,30 +194,10 @@ func MainShow() {
 						Visible:    true,
 						Text:       "预览邮件信息：",
 					},
-					PushButton{
-						AssignTo:  &Mg.ViewPb,
-						Text:      "预览",
-						Visible:   true,
-						Alignment: AlignHFarVNear,
-						OnClicked: func() {
-							//bind webview info
-							if rows != nil {
-								touser, mailinfo = sendmail.GetMailInfo(index, rows)
-								err := ioutil.WriteFile(TempFile, mailinfo.Bytes(), 0660)
-								if err != nil {
-									WarnInfo(err.Error())
-								}
-								tmppath, _ := filepath.Abs(TempFile)
-								//fmt.Println(tmppath)
-								Mg.ShowView.SetURL(tmppath)
-							} else {
-								WarnInfo("请选择工资条文件(.xlsx)")
-							}
-						},
-					},
 					WebView{
 						AssignTo:   &Mg.ShowView,
 						Visible:    true,
+						URL:        viewbg,
 						ColumnSpan: 2,
 					},
 				},
@@ -197,12 +209,26 @@ func MainShow() {
 						AssignTo: &Mg.ForwardPb,
 						Text:     "上一条",
 						Visible:  true,
+						Enabled:  false,
 						OnClicked: func() {
 							//index -1 , if index=0 disable
-							if index == 2 {
-								Mg.ForwardPb.SetVisible(false)
-								index -= index
+							index -= index
+							/*							switch {
+														case index<0:
+															index=0
+															fallthrough
+														case index==0:
+															Mg.ForwardPb.SetVisible(false)
+														}*/
+							Mg.NextPd.SetEnabled(true)
+							if index < 0 {
+								index = 0
 							}
+							if index == 0 {
+								Mg.ForwardPb.SetEnabled(false)
+							}
+							SetLinelabel()
+							View()
 						},
 					},
 					Label{
@@ -215,12 +241,19 @@ func MainShow() {
 						AssignTo: &Mg.NextPd,
 						Text:     "下一条",
 						Visible:  true,
+						Enabled:  false,
 						OnClicked: func() {
 							//index +1 , if index=Enum disable
-							if index == len(rows)-head-1 {
-								Mg.NextPd.SetVisible(false)
-								index += 1
+							index += 1
+							Mg.ForwardPb.SetEnabled(true)
+							if index > len(rows)-head-1 {
+								index = len(rows) - head - 1
 							}
+							if index == len(rows)-head-1 {
+								Mg.NextPd.SetEnabled(false)
+							}
+							SetLinelabel()
+							View()
 						},
 					},
 					NumberEdit{

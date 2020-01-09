@@ -28,10 +28,9 @@ const (
 )
 
 var (
-	//	wd    *walk.MainWindow
-	// 表头高度
-	Head int = 2
 	// 表头内容
+	Head int = 2
+	// 邮件内容
 	Entry [][]string
 	// 邮件条数
 	Enum int

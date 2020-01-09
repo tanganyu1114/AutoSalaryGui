@@ -33,9 +33,8 @@ type LoginInfo struct {
 const LoginConf = "login.config"
 
 var (
-	Li   *LoginInfo = &LoginInfo{PortInfo: 465}
-	lg   LoginGui
-	warn *walk.MainWindow
+	Li *LoginInfo = &LoginInfo{PortInfo: 465}
+	lg LoginGui
 )
 
 func LoginWs(wf walk.Form) (int, error) {
@@ -43,6 +42,7 @@ func LoginWs(wf walk.Form) (int, error) {
 	reslg := Dialog{
 		AssignTo:      &lg.loginDlg,
 		Title:         "Email邮箱登陆界面",
+		Icon:          "source/logo.png",
 		DefaultButton: &lg.acceptPb,
 		CancelButton:  &lg.cancelPb,
 		DataBinder: DataBinder{
@@ -71,7 +71,7 @@ func LoginWs(wf walk.Form) (int, error) {
 					},
 					LineEdit{
 						PasswordMode: true,
-						CueBanner:    "请输入您的邮箱密码",
+						CueBanner:    "请输入您的密码或授权码",
 						Text:         Bind("PassInfo"),
 					},
 					Label{
@@ -119,7 +119,7 @@ func LoginWs(wf walk.Form) (int, error) {
 	return sint, err
 }
 
-func (li *LoginInfo) SaveLogin() {
+func (li *LoginInfo) SaveLogin() (err error) {
 
 	//	var filePtr *os.File
 	srcpass := li.PassInfo
@@ -131,49 +131,39 @@ func (li *LoginInfo) SaveLogin() {
 	li.PassInfo = encoded
 	data, _ := json.Marshal(li)
 
-	err := ioutil.WriteFile(LoginConf, data, 0660)
+	err = ioutil.WriteFile(LoginConf, data, 0660)
 	if err != nil {
-		str := err.Error() + "存储用户信息格式错误"
-		WarnInfo(str)
+		return
 	}
 	li.PassInfo = srcpass
+	return nil
 }
 
-func (li *LoginInfo) ReadConf() {
+func (li *LoginInfo) ReadConf() (err error) {
 	path, _ := os.Getwd()
 	filepath := path + "/" + LoginConf
 	if FileExist(filepath) {
 		filePtr, err := os.Open(LoginConf)
 		if err != nil {
 			//fmt.Println("读取用户信息失败！")
-			str := err.Error() + "读取用户信息失败"
-			WarnInfo(str)
+			return err
 		}
 		defer filePtr.Close()
 		readInfo := json.NewDecoder(filePtr)
 		err = readInfo.Decode(li)
 		if err != nil {
 			//fmt.Println("存储用户信息格式错误！")
-			str := err.Error() + "存储用户信息格式错误"
-			WarnInfo(str)
+			return err
 		}
 		decoded, _ := base64.StdEncoding.DecodeString(li.PassInfo)
 		li.PassInfo = string(decoded)
-
 	}
+	return nil
 }
 
 func FileExist(path string) bool {
 	_, err := os.Lstat(path)
 	return !os.IsNotExist(err)
-}
-
-func WarnInfo(str string) {
-	walk.MsgBox(
-		warn,
-		"Error",
-		str,
-		walk.MsgBoxOK|walk.MsgBoxIconError)
 }
 
 //登陆校验
