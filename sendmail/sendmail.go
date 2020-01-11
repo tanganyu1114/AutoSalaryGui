@@ -3,6 +3,7 @@ package sendmail
 import (
 	"AutoSalaryGui/loginws"
 	"AutoSalaryGui/setmail"
+	"AutoSalaryGui/source"
 	"bytes"
 	"github.com/360EntSecGroup-Skylar/excelize/v2"
 	"gopkg.in/gomail.v2"
@@ -28,33 +29,45 @@ const (
 )
 
 var (
+	// xlsx表格内容
+	Rows [][]string
+	// 当前条数的邮件内容信息
+	BodyInfo *bytes.Buffer
+	// 收件人
+	Touser string
 	// 表头内容
-	Head int = 2
-	// 邮件内容
-	Entry [][]string
+	Header [][]string
 	// 邮件条数
 	Enum int
 	// 合并的单元格信息
-	Mcell []excelize.MergeCell
-	Si    *Sendinfo = &Sendinfo{Fmuser: loginws.Li.UserInfo}
+	Mcell    []excelize.MergeCell
+	Si       *Sendinfo = &Sendinfo{Fmuser: loginws.Li.UserInfo}
+	TempMail []byte
 )
 
-func GetMailInfo(index int, rows [][]string) (touser string, buffer *bytes.Buffer) {
+func init() {
+	TempMail, _ = source.Asset("source/mail_template.html")
+}
+
+// num 第几条表格信息
+func GetMailInfo(num int) {
 	var info string
-	row := rows[Head+index]
-	buffer = new(bytes.Buffer)
+	//rows := *xlsxptr
+	//row := rows[num]
+	num = num + len(Header)
+	row := Rows[num]
+	BodyInfo = new(bytes.Buffer)
 	matched, _ := regexp.MatchString("\\w[-\\w.+]*@([A-Za-z0-9][-A-Za-z0-9]+\\.)+[A-Za-z]{2,14}", row[len(row)-1])
 	if matched {
-		touser = row[len(row)-1]
+		Touser = row[len(row)-1]
 	} else {
 		info = "<meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\" /></br>获取邮箱失败,错误的邮箱格式,姓名：" + row[0] + " 邮箱信息:" + row[len(row)-1]
-		buffer = bytes.NewBufferString(info)
+		BodyInfo = bytes.NewBufferString(info)
 		return
-		//WarnInfo("获取邮箱失败,错误的邮箱格式,姓名："+row[0]+" 邮箱信息:"+row[len(row)-1])
 	}
 	//
-	lnum := len(Entry)
-	rnum := len(Entry[0])
+	lnum := len(Header)
+	rnum := len(Header[0])
 	cnum := len(Mcell)
 	mmcell := make(map[string]string, cnum)
 	for _, m := range Mcell {
@@ -65,21 +78,18 @@ func GetMailInfo(index int, rows [][]string) (touser string, buffer *bytes.Buffe
 		//重置str为空
 		str := ""
 		for j := 0; j < lnum; j++ {
-
 			var slnum, scnum, elnum, ecnum int //行号、列号
-
 			//行列转换为cell坐标: A1/B1
 			scell, _ := excelize.CoordinatesToCellName(i+1, j+1)
-
 			if ecell, ok := mmcell[scell]; ok {
 				slnum, scnum, _ = excelize.CellNameToCoordinates(scell)
 				elnum, ecnum, _ = excelize.CellNameToCoordinates(ecell)
 				srspan := strconv.Itoa(elnum - slnum + 1)
 				scspan := strconv.Itoa(ecnum - scnum + 1)
-				str += "<th style=\" text-align: center;font-size: 16px;height: 30px;width: 200px;border-bottom: 1px solid #999;border-right: 1px solid #999;\" rowspan=\"" + srspan + "\"colspan=\"" + scspan + "\">" + Entry[j][i] + "</th>"
+				str += "<th style=\" text-align: center;font-size: 16px;height: 30px;width: 200px;border-bottom: 1px solid #999;border-right: 1px solid #999;\" rowspan=\"" + srspan + "\"colspan=\"" + scspan + "\">" + Header[j][i] + "</th>"
 			} else {
-				if Entry[j][i] != "" {
-					str += "<th style=\" text-align: center;font-size: 16px;height: 30px;width: 200px;border-bottom: 1px solid #999;border-right: 1px solid #999;\" rowspan=\"1\"  colspan=\"1\">" + Entry[j][i] + "</th>"
+				if Header[j][i] != "" {
+					str += "<th style=\" text-align: center;font-size: 16px;height: 30px;width: 200px;border-bottom: 1px solid #999;border-right: 1px solid #999;\" rowspan=\"1\"  colspan=\"1\">" + Header[j][i] + "</th>"
 				}
 			}
 		}
@@ -99,71 +109,62 @@ func GetMailInfo(index int, rows [][]string) (touser string, buffer *bytes.Buffe
 		Ssign: setmail.Mi.Sign,
 		Stime: time.Now().Format("2006年01月02日"),
 	}
-	t := template.New("E:/Golang/src/AutoSalaryGui/sendmail/mail_template.html")
-	t, _ = template.ParseFiles("E:/Golang/src/AutoSalaryGui/sendmail/mail_template.html")
-	t.Execute(buffer, Si)
-	return
+
+	t := template.Must(template.New("mail_template.html").Parse(string(TempMail)))
+
+	t.Execute(BodyInfo, Si)
 }
 
-/*func SendMail(rows [][]string) (view string) {
-
-
-}*/
-
-//发送所有
-func SendAll(touser string, body string) (err error) {
+// send the mail to user
+// touser the mail receiver
+// body  the mail information
+func SendMail() (err error) {
 	m := gomail.NewMessage()
-	m.SetHeader("From", loginws.Li.UserInfo)
-	m.SetHeader("To", touser)
+	m.SetHeader("To", Touser)
 	if setmail.Mi.Alias != "" {
-		m.SetAddressHeader("Cc", loginws.Li.UserInfo, setmail.Mi.Alias)
+		m.SetAddressHeader("From", loginws.Li.UserInfo, setmail.Mi.Alias)
+	} else {
+		m.SetHeader("From", loginws.Li.UserInfo)
 	}
 	m.SetHeader("Subject", setmail.Mi.Title)
-	m.SetBody("text/html", body)
+	m.SetBody("text/html", BodyInfo.String())
 
 	d := gomail.NewDialer(loginws.Li.HostInfo, loginws.Li.PortInfo, loginws.Li.UserInfo, loginws.Li.PassInfo)
 
-	// Send the email to Bob, Cora and Dan.
+	// Send the email to user
 	if err := d.DialAndSend(m); err != nil {
 		return err
 	}
 	return nil
 }
 
-//发送当前
-func SendSigle(touser string, body *bytes.Buffer) (err error) {
-	m := gomail.NewMessage()
-	m.SetHeader("From", loginws.Li.UserInfo)
-	m.SetHeader("To", touser)
-	if setmail.Mi.Alias != "" {
-		m.SetAddressHeader("Cc", loginws.Li.UserInfo, setmail.Mi.Alias)
-	}
-	m.SetHeader("Subject", setmail.Mi.Title)
-	m.SetBody("text/html", body.String())
+// read the xlsx file
+// return the file info / num / user
+func ReadXlsx(xlsxPath string) (err error) {
 
-	d := gomail.NewDialer(loginws.Li.HostInfo, loginws.Li.PortInfo, loginws.Li.UserInfo, loginws.Li.PassInfo)
-
-	// Send the email to Bob, Cora and Dan.
-	if err := d.DialAndSend(m); err != nil {
+	var index int
+	var row []string
+	xlsxFile, err := excelize.OpenFile(xlsxPath)
+	if err != nil {
 		return err
 	}
+	sheetname := xlsxFile.GetSheetName(sheetid)
+	Rows, err = xlsxFile.GetRows(sheetname)
+	if err != nil {
+		return err
+	}
+	// 获取表头高度 index
+	for index, row = range Rows {
+		matched, _ := regexp.MatchString("\\w[-\\w.+]*@([A-Za-z0-9][-A-Za-z0-9]+\\.)+[A-Za-z]{2,14}", row[len(row)-1])
+		if matched {
+			break
+		}
+	}
+	Mcell, _ = xlsxFile.GetMergeCells(sheetname)
+	// table head
+	Header = Rows[0:index]
+	// info number
+	Enum = len(Rows) - index
+	//xlsptr = &rows
 	return nil
-}
-
-func ReadXlsx(xlsxpath string) (err error, rows [][]string) {
-
-	//改为Gui模式
-	xlsFile, err := excelize.OpenFile(xlsxpath)
-	if err != nil {
-		return err, nil
-	}
-	sheetname := xlsFile.GetSheetName(sheetid)
-	rows, err = xlsFile.GetRows(sheetname)
-	if err != nil {
-		return err, nil
-	}
-	Mcell, _ = xlsFile.GetMergeCells(sheetname)
-	Entry = rows[0:Head]
-	Enum = len(rows) - Head
-	return nil, rows
 }

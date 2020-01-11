@@ -42,7 +42,7 @@ func LoginWs(wf walk.Form) (int, error) {
 	reslg := Dialog{
 		AssignTo:      &lg.loginDlg,
 		Title:         "Email邮箱登陆界面",
-		Icon:          "source/logo.png",
+		Icon:          "logo.png",
 		DefaultButton: &lg.acceptPb,
 		CancelButton:  &lg.cancelPb,
 		DataBinder: DataBinder{

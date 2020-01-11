@@ -4,6 +4,7 @@ go 1.13
 
 require (
 	github.com/360EntSecGroup-Skylar/excelize/v2 v2.0.2
+	github.com/jteeuwen/go-bindata v3.0.7+incompatible // indirect
 	github.com/lxn/walk v0.0.0-20191128110447-55ccb3a9f5c1
 	github.com/lxn/win v0.0.0-20191128105842-2da648fda5b4 // indirect
 	golang.org/x/image v0.0.0-20191214001246-9130b4cfad52 // indirect

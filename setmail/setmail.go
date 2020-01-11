@@ -43,7 +43,7 @@ func SetMail(wf walk.Form) (int, error) {
 	resmail := Dialog{
 		AssignTo:      &sg.setDlg,
 		Title:         "邮件配置界面",
-		Icon:          "source/logo.png",
+		Icon:          "logo.png",
 		DefaultButton: &sg.acceptPb,
 		CancelButton:  &sg.cancelPb,
 		DataBinder: DataBinder{
