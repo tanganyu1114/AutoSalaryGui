@@ -1,9 +1,9 @@
 package sendmail
 
 import (
+	"AutoSalaryGui/assets"
 	"AutoSalaryGui/loginws"
-	"AutoSalaryGui/setmail"
-	"AutoSalaryGui/source"
+	"AutoSalaryGui/setupmail"
 	"bytes"
 	"github.com/360EntSecGroup-Skylar/excelize/v2"
 	"gopkg.in/gomail.v2"
@@ -46,7 +46,7 @@ var (
 )
 
 func init() {
-	TempMail, _ = source.Asset("source/mail_template.html")
+	TempMail, _ = assets.Asset("source/mail_template.html")
 }
 
 // num 第几条表格信息
@@ -104,9 +104,9 @@ func GetMailInfo(num int) {
 
 	Si = &Sendinfo{
 		Sbody: body,
-		Spre:  setmail.Mi.Prefix,
-		Ssuf:  setmail.Mi.Suffix,
-		Ssign: setmail.Mi.Sign,
+		Spre:  setupmail.Mi.Prefix,
+		Ssuf:  setupmail.Mi.Suffix,
+		Ssign: setupmail.Mi.Sign,
 		Stime: time.Now().Format("2006年01月02日"),
 	}
 
@@ -121,12 +121,12 @@ func GetMailInfo(num int) {
 func SendMail() (err error) {
 	m := gomail.NewMessage()
 	m.SetHeader("To", Touser)
-	if setmail.Mi.Alias != "" {
-		m.SetAddressHeader("From", loginws.Li.UserInfo, setmail.Mi.Alias)
+	if setupmail.Mi.Alias != "" {
+		m.SetAddressHeader("From", loginws.Li.UserInfo, setupmail.Mi.Alias)
 	} else {
 		m.SetHeader("From", loginws.Li.UserInfo)
 	}
-	m.SetHeader("Subject", setmail.Mi.Title)
+	m.SetHeader("Subject", setupmail.Mi.Title)
 	m.SetBody("text/html", BodyInfo.String())
 
 	d := gomail.NewDialer(loginws.Li.HostInfo, loginws.Li.PortInfo, loginws.Li.UserInfo, loginws.Li.PassInfo)

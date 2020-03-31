@@ -1,15 +1,16 @@
+// 主界面窗口
+// main windows
 package mainws
 
 import (
+	"AutoSalaryGui/init/res"
 	"AutoSalaryGui/loginws"
 	"AutoSalaryGui/sendmail"
-	"AutoSalaryGui/setmail"
-	"AutoSalaryGui/source"
+	"AutoSalaryGui/setupmail"
 	"bytes"
 	"fmt"
 	"github.com/lxn/walk"
 	. "github.com/lxn/walk/declarative"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -45,41 +46,29 @@ var (
 	bodyptr *bytes.Buffer
 	// mail number
 	index int
-	// 视图背景
-	viewpath     string
-	Logo, viewbg []byte
 )
-
-func init() {
-	Logo, _ = source.Asset("source/logo.png")
-	viewbg, _ = source.Asset("source/view.jpg")
-	if !loginws.FileExist("logo.png") {
-		ioutil.WriteFile("logo.png", Logo, 0660)
-	}
-	if !loginws.FileExist("view.jpg") {
-		ioutil.WriteFile("view.jpg", viewbg, 0660)
-	}
-}
 
 func MainShow() {
 
 	//返回dialog窗口
 	def := MainWindow{
 		AssignTo: &Mg.Window,
-		Icon:     "logo.png",
+		Icon:     "assets/picture/logo.png",
 		Title:    "AutoSalary Gui  --ver0.1",
 		MinSize:  Size{Width: 640, Height: 720},
 		Size:     Size{Width: 640, Height: 720},
 		Layout:   VBox{},
 		Children: []Widget{
 			Composite{
-				Layout: Grid{Columns: 2},
+				Layout: Grid{Columns: 6},
 				Children: []Widget{
 					PushButton{
-						AssignTo:   &Mg.LoginPb,
-						Text:       "登陆",
-						Visible:    true,
-						ColumnSpan: 1,
+						AssignTo:       &Mg.LoginPb,
+						Text:           "登陆",
+						Image:          "assets/picture/login.ico",
+						ImageAboveText: true,
+						Visible:        true,
+						ColumnSpan:     1,
 						OnClicked: func() {
 							//打开登陆配置界面
 							if cmd, err := loginws.LoginWs(Mg.Window); err != nil {
@@ -92,40 +81,30 @@ func MainShow() {
 						},
 					},
 					PushButton{
-						AssignTo: &Mg.SendAllPb,
-						Text:     "发送全部工资条",
-						Visible:  true,
-						Enabled:  false,
+						AssignTo:       &Mg.SetmailPb,
+						Text:           "邮件配置",
+						Image:          "assets/picture/setting.ico",
+						ImageAboveText: true,
+						Visible:        true,
 						OnClicked: func() {
-							//点击发送邮件
-							//sendmail.SendAll(rows,mailinfo)
-							if sendmail.Rows != nil {
-								PromptSendInfo(Mg.Window)
-								Mg.SendAllPb.SetEnabled(false)
-								var res string
-								for index = 0; index < sendmail.Enum; index++ {
-									sendmail.GetMailInfo(index)
-									err := sendmail.SendMail()
-									if err != nil {
-										res = err.Error()
-									}
-									ps.pmpShow.SetText("正在发送第" + strconv.Itoa(index+1) + "条/总共" + strconv.Itoa(sendmail.Enum) + "条")
+
+							if cmd, err := setupmail.SetMail(Mg.Window); err != nil {
+								WarnInfo(err.Error())
+							} else if cmd == walk.DlgCmdOK {
+								//保存邮件配置信息
+								if err := setupmail.Mi.SaveMailConf(); err != nil {
+									WarnInfo(err.Error())
 								}
-								ps.pmpPb.Clicked()
-								if res != "" {
-									WarnInfo(res)
-								} else {
-									PromptInfo("邮件发送完成!")
-								}
-							} else {
-								WarnInfo("请选择工资文件（xlsx）")
+								View()
 							}
 						},
 					},
 					PushButton{
-						AssignTo: &Mg.FilePb,
-						Text:     "请选择工资文件(xlsx)",
-						Visible:  true,
+						AssignTo:       &Mg.FilePb,
+						Text:           "请选择工资文件(xlsx)",
+						Image:          "assets/picture/xlsx.ico",
+						ImageAboveText: true,
+						Visible:        true,
 						OnClicked: func() {
 							//打开选择文件窗口，获取文件路径以及文件名
 							if cmd, err := Mg.Fd.ShowOpen(Mg.Window); err != nil {
@@ -155,9 +134,11 @@ func MainShow() {
 						},
 					},
 					PushButton{
-						AssignTo: &Mg.ResetPb,
-						Text:     "重置",
-						Visible:  true,
+						AssignTo:       &Mg.ResetPb,
+						Text:           "重置",
+						Image:          "assets/picture/refresh.ico",
+						ImageAboveText: true,
+						Visible:        true,
 						OnClicked: func() {
 							//重置选中的文件，清空预览窗口
 							Mg.FilePb.SetEnabled(true)
@@ -166,36 +147,60 @@ func MainShow() {
 							if sendmail.Rows != nil {
 								sendmail.Rows = make([][]string, 0)
 							}
-							Mg.ShowView.SetURL(viewpath)
+							Mg.ShowView.SetURL(res.TEMP + "\\view.jpg")
 							//fmt.Println("filepath",Fd.FilePath,"title",Fd.Title)
 						},
 					},
-					PushButton{
-						AssignTo: &Mg.SetmailPb,
-						Text:     "邮件配置",
-						Visible:  true,
-						OnClicked: func() {
 
-							if cmd, err := setmail.SetMail(Mg.Window); err != nil {
-								WarnInfo(err.Error())
-							} else if cmd == walk.DlgCmdOK {
-								//保存邮件配置信息
-								if err := setmail.Mi.SaveMailConf(); err != nil {
-									WarnInfo(err.Error())
-								}
-								View()
-							}
-						},
-					},
 					PushButton{
-						AssignTo: &Mg.LogPb,
-						Text:     "查看日志",
-						Visible:  true,
+						AssignTo:       &Mg.LogPb,
+						Text:           "查看日志",
+						Image:          "assets/picture/log.ico",
+						ImageAboveText: true,
+						Visible:        true,
 						OnClicked: func() {
 							dir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
 							fmt.Println(dir)
 						},
 					},
+					PushButton{
+						AssignTo:       &Mg.SendAllPb,
+						Text:           "发送全部工资条",
+						Image:          "assets/picture/sendall.ico",
+						ImageAboveText: true,
+						Visible:        true,
+						Enabled:        false,
+						OnClicked: func() {
+							//点击发送邮件
+							//sendmail.SendAll(rows,mailinfo)
+							if sendmail.Rows != nil {
+								PromptSendInfo(Mg.Window)
+								Mg.SendAllPb.SetEnabled(false)
+								var res string
+								for index = 0; index < sendmail.Enum; index++ {
+									sendmail.GetMailInfo(index)
+									err := sendmail.SendMail()
+									if err != nil {
+										res = err.Error()
+									}
+									ps.pmpShow.SetText("正在发送第" + strconv.Itoa(index+1) + "条/总共" + strconv.Itoa(sendmail.Enum) + "条")
+								}
+								ps.pmpPb.Clicked()
+								if res != "" {
+									WarnInfo(res)
+								} else {
+									PromptInfo("邮件发送完成!")
+								}
+							} else {
+								WarnInfo("请选择工资文件（xlsx）")
+							}
+						},
+					},
+				},
+			},
+			Composite{
+				Layout: Grid{Columns: 1},
+				Children: []Widget{
 					Label{
 						AssignTo:   &Mg.ShowLabel,
 						ColumnSpan: 1,
@@ -213,10 +218,12 @@ func MainShow() {
 				Layout: Grid{Columns: 3},
 				Children: []Widget{
 					PushButton{
-						AssignTo: &Mg.ForwardPb,
-						Text:     "上一条",
-						Visible:  true,
-						Enabled:  false,
+						AssignTo:       &Mg.ForwardPb,
+						Text:           "上一条",
+						Image:          "assets/picture/back.ico",
+						ImageAboveText: false,
+						Visible:        true,
+						Enabled:        false,
 						OnClicked: func() {
 							//index -1 , if index=0 disable
 							index -= index
@@ -238,10 +245,12 @@ func MainShow() {
 						Text:      "第0条/总共0条",
 					},
 					PushButton{
-						AssignTo: &Mg.NextPd,
-						Text:     "下一条",
-						Visible:  true,
-						Enabled:  false,
+						AssignTo:       &Mg.NextPd,
+						Text:           "下一条",
+						Image:          "assets/picture/forward.ico",
+						ImageAboveText: false,
+						Visible:        true,
+						Enabled:        false,
 						OnClicked: func() {
 							//index +1 , if index=Enum disable
 							index += 1
@@ -261,10 +270,12 @@ func MainShow() {
 						Decimals: 0,
 					},
 					PushButton{
-						AssignTo: &Mg.GotoPb,
-						Text:     "跳转",
-						Visible:  true,
-						Enabled:  false,
+						AssignTo:       &Mg.GotoPb,
+						Text:           "跳转",
+						Image:          "assets/picture/goto.ico",
+						ImageAboveText: false,
+						Visible:        true,
+						Enabled:        false,
 						OnClicked: func() {
 							//index +1 , if index=Enum disable
 							index = int(Mg.NumEdit.Value()) - 1
@@ -334,15 +345,13 @@ func initws() {
 		}
 	}
 	//读取邮件配置信息
-	if err := setmail.Mi.ReadMailConf(); err != nil {
+	if err := setupmail.Mi.ReadMailConf(); err != nil {
 		WarnInfo(err.Error())
 	}
 
 	Mg.Fd.Title = "请选择工资条文件"
 	Mg.Fd.Filter = "*.xlsx|*.xlsx"
-	viewpath, _ = os.Getwd()
-	viewpath = viewpath + "/view.jpg"
-	Mg.ShowView.SetURL(viewpath)
+	Mg.ShowView.SetURL(res.TEMP + "\\view.jpg")
 }
 
 // 读取xlsx文件，加载读取后的界面信息
